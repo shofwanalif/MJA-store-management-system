@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int             @id @default(autoincrement())
+  username       String          @unique
+  password       String
+  role           String          @default("admin") // atau "kasir", "owner", dll
+  refresh_tokens RefreshToken[]
+  createdAt      DateTime        @default(now())
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  expires_at DateTime
+  created_at DateTime @default(now())
+}
+
+model Item {
+  id           Int      @id @default(autoincrement())
+  name         String
+  priceRetail  Int      // Harga eceran
+  priceWholesale Int    // Harga grosir
+  stock        Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Reseller {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  address   String?
+  debts     Debt[]
+  createdAt DateTime @default(now())
+}
+
+model Debt {
+  id           Int      @id @default(autoincrement())
+  reseller     Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  resellerId   Int
+  amount       Int
+  dueDate      DateTime
+  description  String?
+  isPaid       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Income {
+  id        Int      @id @default(autoincrement())
+  amount    Int
+  date      DateTime @default(now())
+  note      String?
+  createdAt DateTime @default(now())
+}
