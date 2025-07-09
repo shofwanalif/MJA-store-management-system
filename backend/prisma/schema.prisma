@@ -37,7 +37,7 @@ model Item {
 }
 
 model Reseller {
-  id        Int      @id @default(autoincrement())
+  id        Int      @id @default(autoincrement()) 
   name      String
   phone     String?
   address   String?
@@ -47,7 +47,7 @@ model Reseller {
 
 model Debt {
   id           Int      @id @default(autoincrement())
-  reseller     Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  reseller     Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade) // accessor relasi
   resellerId   Int
   amount       Int
   dueDate      DateTime
