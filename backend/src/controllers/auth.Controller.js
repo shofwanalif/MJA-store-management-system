@@ -33,7 +33,7 @@ const register = async (req, res) => {
       data: {
         username,
         password: hashPassword,
-        role: 'admin', // Default role, can be changed later
+        role: 'user', // Default role, can be changed later
       },
     });
 
@@ -76,11 +76,12 @@ const login = async (req, res) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
+    // Simpan token tanpa menghapus token-token sebelumnya (multi-device support)
     await prisma.refreshToken.create({
       data: {
         token: refreshToken,
         userId: user.id,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 hari
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
 
@@ -106,20 +107,23 @@ const refreshAccessToken = async (req, res) => {
   }
 
   try {
-    const refreshToken = await prisma.refreshToken.findUnique({
+    const refreshTokenInDb = await prisma.refreshToken.findUnique({
       where: { token },
     });
 
-    if (!refreshToken) {
+    if (!refreshTokenInDb) {
       return res.status(401).json({
-        message: 'invalid refresh token',
+        message: 'Invalid refresh token',
       });
     }
 
     jwt.verify(token, JWT_REFRESH_SECRET, async (err, decoded) => {
       if (err) {
+        // Token valid tapi sudah expired → hapus dari DB
+        await prisma.refreshToken.delete({ where: { token } });
+
         return res.status(403).json({
-          message: 'token expired or invalid',
+          message: 'Token expired or invalid',
         });
       }
 
@@ -136,9 +140,12 @@ const refreshAccessToken = async (req, res) => {
       const newAccessToken = generateAccessToken(user);
       const newRefreshToken = generateRefreshToken(user);
 
+      // Hapus refresh token lama (yang baru dipakai)
       await prisma.refreshToken.delete({
         where: { token },
       });
+
+      // Simpan refresh token baru (device ini)
       await prisma.refreshToken.create({
         data: {
           token: newRefreshToken,
